@@ -1,0 +1,12 @@
+{
+    "name": "youtube-transcript-client",
+    "version": "1.0.0",
+    "description": "YouTube transcript frontend",
+    "scripts": {
+        "build:css": "tailwindcss -i ./src/input.css -o ./public/styles.css --watch",
+        "build:css:prod": "tailwindcss -i ./src/input.css -o ./public/styles.css --minify"
+    },
+    "devDependencies": {
+        "tailwindcss": "^3.3.6"
+    }
+}

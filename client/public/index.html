@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube ► LLM | Instant Transcript Summaries</title>
+    <meta name="description" content="Paste a YouTube link and get an AI-powered summary in under a minute">
+
+    <!-- Favicon -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
+
+    <!-- Tailwind CSS -->
+    <link href="./styles.css" rel="stylesheet">
+</head>
+
+<body class="gradient-bg min-h-screen p-5 text-gray-800 leading-relaxed">
+    <div class="max-w-4xl mx-auto card">
+        <!-- Header -->
+        <div class="header-gradient text-white p-8 text-center">
+            <h1 class="text-3xl font-bold mb-3">YouTube ► LLM</h1>
+            <p class="text-lg opacity-90">Instant Transcript Summaries</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="p-8">
+            <!-- Input Section -->
+            <div class="mb-8">
+                <div class="mb-5">
+                    <label for="youtube-url" class="block mb-2 font-semibold text-gray-600">
+                        YouTube URL
+                    </label>
+                    <input type="url" id="youtube-url"
+                        class="w-full p-4 border-2 border-gray-200 rounded-lg text-base transition-colors focus:outline-none focus:border-brand-purple"
+                        placeholder="https://www.youtube.com/watch?v=...">
+                </div>
+                <button id="process-btn" class="btn-primary w-full">
+                    🎬 Get Summary
+                </button>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="status-processing" class="status-processing hidden my-5">
+                <div class="flex items-center">
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-3"></div>
+                    Processing transcript... This may take a few moments.
+                </div>
+            </div>
+
+            <div id="status-success" class="status-success hidden my-5">
+                ✅ Successfully processed your video!
+            </div>
+
+            <div id="status-error" class="status-error hidden my-5">
+                ❌ <span id="error-message">Something went wrong. Please try again.</span>
+            </div>
+
+            <!-- Results -->
+            <div id="result" class="hidden mt-8">
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-5 mb-5">
+                    <h3 class="mb-4 text-lg font-semibold text-gray-700">AI Summary</h3>
+                    <div id="summary-text" class="whitespace-pre-wrap leading-7"></div>
+                </div>
+
+                <div class="flex gap-3 flex-wrap">
+                    <button id="copy-summary" class="btn-secondary">
+                        📋 Copy Summary
+                    </button>
+                    <button id="copy-transcript" class="btn-secondary">
+                        📄 Copy Transcript
+                    </button>
+                    <button id="new-video" class="btn-secondary">
+                        🔄 New Video
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Transcripts -->
+            <div class="mt-10">
+                <h2 class="text-xl font-semibold mb-5 text-gray-700">Recent Transcripts</h2>
+                <div id="recent-list" class="space-y-3">
+                    <!-- Recent items will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TranscriptApp {
+            constructor() {
+                this.currentTranscript = '';
+                this.currentSummary = '';
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.loadRecentTranscripts();
+            }
+
+            bindEvents() {
+                document.getElementById('process-btn').addEventListener('click', () => this.processVideo());
+                document.getElementById('copy-summary').addEventListener('click', () => this.copyToClipboard(this.currentSummary));
+                document.getElementById('copy-transcript').addEventListener('click', () => this.copyToClipboard(this.currentTranscript));
+                document.getElementById('new-video').addEventListener('click', () => this.resetForm());
+
+                // Enter key support
+                document.getElementById('youtube-url').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.processVideo();
+                });
+            }
+
+            showStatus(type, message = '') {
+                // Hide all status messages
+                document.querySelectorAll('[id^="status-"]').forEach(el => el.classList.add('hidden'));
+
+                if (type) {
+                    const statusEl = document.getElementById(`status-${type}`);
+                    if (statusEl) {
+                        statusEl.classList.remove('hidden');
+                        if (message && type === 'error') {
+                            document.getElementById('error-message').textContent = message;
+                        }
+                    }
+                }
+            }
+
+            async processVideo() {
+                const url = document.getElementById('youtube-url').value.trim();
+
+                if (!url) {
+                    this.showStatus('error', 'Please enter a YouTube URL');
+                    return;
+                }
+
+                try {
+                    // Disable button and show processing
+                    const btn = document.getElementById('process-btn');
+                    btn.disabled = true;
+                    btn.textContent = 'Processing...';
+                    this.showStatus('processing');
+
+                    const response = await fetch('/api/process', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Failed to process video');
+                    }
+
+                    if (data.status === 'completed') {
+                        this.displayResults(data);
+                        this.showStatus('success');
+                        this.loadRecentTranscripts();
+                    } else {
+                        throw new Error('Processing failed');
+                    }
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    this.showStatus('error', error.message);
+                } finally {
+                    // Re-enable button
+                    const btn = document.getElementById('process-btn');
+                    btn.disabled = false;
+                    btn.textContent = '🎬 Get Summary';
+                }
+            }
+
+            displayResults(data) {
+                this.currentTranscript = data.transcript;
+                this.currentSummary = data.summary;
+
+                document.getElementById('summary-text').textContent = data.summary;
+                document.getElementById('result').classList.remove('hidden');
+            }
+
+            async copyToClipboard(text) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    // Simple feedback - could be enhanced with toast notifications
+                    console.log('Copied to clipboard');
+                } catch (err) {
+                    console.error('Failed to copy:', err);
+                }
+            }
+
+            resetForm() {
+                document.getElementById('youtube-url').value = '';
+                document.getElementById('result').classList.add('hidden');
+                this.showStatus(null);
+                this.currentTranscript = '';
+                this.currentSummary = '';
+            }
+
+            async loadRecentTranscripts() {
+                try {
+                    const response = await fetch('/api/list');
+                    const data = await response.json();
+
+                    const container = document.getElementById('recent-list');
+
+                    if (data.transcripts && data.transcripts.length > 0) {
+                        container.innerHTML = data.transcripts.map(item => `
+                            <div class="bg-gray-50 rounded-lg p-4 cursor-pointer transition-colors hover:bg-gray-100" 
+                                 onclick="app.loadTranscript('${item.id}')">
+                                <div class="font-medium text-sm text-gray-600 mb-1">
+                                    ${new Date(item.createdAt).toLocaleDateString()}
+                                </div>
+                                <div class="text-sm text-gray-800 truncate">
+                                    ${item.url}
+                                </div>
+                                ${item.summary ? `
+                                    <div class="text-xs text-gray-500 mt-1 line-clamp-2">
+                                        ${item.summary.substring(0, 100)}...
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<div class="text-gray-500 text-center py-4">No recent transcripts</div>';
+                    }
+                } catch (error) {
+                    console.error('Failed to load recent transcripts:', error);
+                }
+            }
+
+            async loadTranscript(id) {
+                try {
+                    const response = await fetch(`/api/status/${id}`);
+                    const data = await response.json();
+
+                    if (data.status === 'completed') {
+                        document.getElementById('youtube-url').value = data.url || '';
+                        this.displayResults(data);
+                        this.showStatus('success');
+                    }
+                } catch (error) {
+                    console.error('Failed to load transcript:', error);
+                }
+            }
+        }
+
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.app = new TranscriptApp();
+        });
+    </script>
+</body>
+
+</html>

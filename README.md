@@ -1,108 +1,165 @@
-# YouTube ► LLM — Product Requirements & Delivery Roadmap
+# YouTube ► LLM | Transcript Summarizer
 
-## 1  Vision
+A full-stack application that extracts YouTube video transcripts and generates AI-powered summaries using OpenAI's GPT models.
 
-“Paste a YouTube link; get an LLM‑powered summary on any device in under a minute.”
+## 🏗️ Architecture
 
-## 2  Problem Statement
+This project is structured as a monorepo with future React migration in mind:
 
-Manual caption downloads and copy‑pasting into free tools is slow, lossy, and does not scale. Users need a single drop‑in field that fetches captions, processes them with an LLM, and stores results for later search.
+```
+YouTube_transcript/
+├── server/          # Express.js API backend
+├── client/          # Frontend (HTML+Tailwind, React-ready)
+├── shared/          # Shared TypeScript types
+├── render.yaml      # Render.com deployment config
+└── package.json     # Root coordination scripts
+```
 
-## 3  Goals & Non‑Goals (MVP)
+## ✨ Features
 
-| Goal                                                                 | Non‑Goal                                    |
-| -------------------------------------------------------------------- | ------------------------------------------- |
-| 1. Fetch English (or fallback) captions for any public YouTube video | Multilingual UI                             |
-| 2. Chunk transcript within model context limits                      | Whisper STT for no‑caption videos           |
-| 3. Summarise each chunk via LLM and return stitched result           | Multiple summary formats (blog, Q\&A, etc.) |
-| 4. Persist `{url, transcript, summary, createdAt}` in one table      | Multi‑tenant SaaS billing                   |
-| 5. Minimal mobile‑friendly web page to paste links & list jobs       | Native iOS / Android app                    |
+- **Instant Processing**: Paste a YouTube URL and get an AI summary
+- **Smart Caching**: Avoid reprocessing the same videos
+- **Recent History**: Quick access to previously processed videos
+- **Modern UI**: Clean, responsive design with Tailwind CSS
+- **Production Ready**: PostgreSQL support and Render deployment
+- **Future Proof**: Structured for easy React migration
 
-## 4  Personas & Use Cases
+## 🚀 Quick Start
 
-* **Analyst (Josh)** — researches AI talks; needs fast skimmable summaries.
-* **Educator** — curates playlists and distributes condensed notes.
-* **Podcaster** — mines transcripts for show‑note highlights.
+### Development Setup
 
-## 5  Functional Requirements
+1. **Clone and install dependencies:**
+   ```bash
+   git clone <your-repo>
+   cd YouTube_transcript
+   npm run install:all
+   ```
 
-1. **POST `/api/process`** → trigger fetch + LLM; return `{status, transcript?, summary?}`.
-2. If work >30 s, return `202 Accepted` with `jobId`; UI polls **GET `/api/status/:id`**.
-3. On completion, insert row into **`transcripts`** `(id, url, transcript, summary, createdAt)`.
-4. **GET `/api/list`** returns recent rows for current user (anon in MVP).
-5. Front‑end: input bar, progress spinner, read‑only summary, download full transcript link.
+2. **Set up environment variables:**
+   ```bash
+   cp server/env.example server/.env
+   # Edit server/.env with your OpenAI API key
+   ```
 
-## 6  Non‑Functional Requirements
+3. **Initialize database:**
+   ```bash
+   npm run db:generate
+   npm run db:push
+   ```
 
-* **Reliability:** 99 % uptime; graceful error handling.
-* **Performance:** 500 ms TTFB; <60 s median latency for 30‑min video.
-* **Security:** HTTPS, secrets via env vars, CORS limited post‑MVP.
-* **Scalability:** 1–5 concurrent users on free tier; queue + worker later.
-* **Portability:** single Docker image.
+4. **Start development servers:**
+   ```bash
+   npm run dev
+   ```
+   This runs both the API server and Tailwind CSS watcher concurrently.
 
-## 7  Tech Stack
+### Production Build
 
-| Layer            | Choice                                      | Reason                        |
-| ---------------- | ------------------------------------------- | ----------------------------- |
-| Transcript fetch | `youtube-transcript-plus`                   | Lightweight, no API key       |
-| Back‑end         | Express + TypeScript                        | Familiar, minimal             |
-| LLM              | OpenAI Chat Completion API (env‑switchable) | Fast to MVP                   |
-| Storage          | SQLite via Drizzle ORM                      | 0‑setup; migrates to Postgres |
-| Queue (phase 2)  | BullMQ + Redis                              | Async jobs                    |
-| Front‑end        | Static HTML (+ Tiny JS)                     | Mobile‑friendly & lightweight |
-| Container        | `node:20‑slim` in Docker                    | Works everywhere              |
+```bash
+npm run build
+npm start
+```
 
-## 8  Major Risks & Mitigations
+## 🔧 Available Scripts
 
-| Risk                   | Mitigation                                                         |
-| ---------------------- | ------------------------------------------------------------------ |
-| YouTube markup changes | Catch `NoTranscriptAvailable`; fallback to Captions API or Whisper |
-| Free‑tier sleep/limits | Choose platform with always‑on hours (Render)                      |
-| LLM cost spikes        | Token budgeting & per‑user quotas                                  |
+### Root Level
+- `npm run dev` - Start both server and client development
+- `npm run build` - Build both client and server for production
+- `npm start` - Start production server
+- `npm run install:all` - Install dependencies for all packages
 
-## 9  Success Metrics (first 60 days)
+### Database
+- `npm run db:generate` - Generate Prisma client
+- `npm run db:push` - Push schema changes to database
+- `npm run db:migrate` - Run database migrations
+- `npm run db:deploy` - Deploy migrations (production)
 
-* **Activation:** ≥80 % first‑time users finish a summary.
-* **Latency P50:** <60 s for videos ≤30 min.
-* **7‑Day Retention:** ≥30 %.
-* **Infra + API cost:** ≤\$10 / month for ≤500 videos.
+## 🌐 Deployment
 
-## 10  Delivery Roadmap
+### Render.com (Recommended)
 
-| Phase                   | Week    | Deliverables                                                  |
-| ----------------------- | ------- | ------------------------------------------------------------- |
-| **0 Kick‑off**          | 0.5 day | Repo scaffolding, CI, Dockerfile                              |
-| **1 Thin MVP**          | 1       | Transcript fetch wrapper, `/api/process`, in‑memory store     |
-|                         | 2       | SQLite + Drizzle, persistence, basic HTML page                |
-| **2 Mobile Polish**     | 3       | Responsive CSS, tighter CORS, `meta viewport`                 |
-| **3 Async Queue**       | 4       | BullMQ worker, `/api/status` polling                          |
-| **4 Deploy & Dog‑food** | 4       | Push to Render; public HTTPS URL                              |
-| **5 Beta Enhancements** | 5–6     | Auth (Clerk), embeddings + pgvector (if Postgres), PWA banner |
-| **6 GA**                | 7–8     | Whisper fallback, rate‑limiting, metrics dashboard            |
+1. **Connect your GitHub repository** to Render
+2. **Use the included `render.yaml`** for automatic deployment
+3. **Set environment variables** in Render dashboard:
+   - `OPENAI_API_KEY` - Your OpenAI API key
+   - Database URL is automatically configured
 
-## 11  Deployment Recommendation
+### Manual Deployment
 
-**Render** is recommended:
+1. **Build the application:**
+   ```bash
+   npm run build
+   ```
 
-* 750 free instance‑hours ≈ 1 always‑on container/month.
-* Local disk persistence supports SQLite.
-* One‑click GitHub deploy; background worker & cron built‑in.
+2. **Set up PostgreSQL database** and update `DATABASE_URL`
 
-### Quick Deploy Steps (Render)
+3. **Run database migrations:**
+   ```bash
+   npm run db:deploy
+   ```
 
-1. Push repo to GitHub.
-2. **Render → New → Web Service**; select repo.
-3. Set `BUILD_COMMAND="npm i"`, `START_COMMAND="node index.js"`.
-4. Add env var `OPENAI_API_KEY`.
-5. Click **Create Web Service** → get `https://<app>.onrender.com`.
+4. **Start the server:**
+   ```bash
+   npm start
+   ```
 
-## 12  Appendix — Transcript Fetch Internals
+## 🔄 Future React Migration
 
-1. Scrapes `ytInitialPlayerResponse` → finds caption tracks.
-2. Chooses English (or requested) track, manual first then ASR.
-3. Downloads XML captions → returns array `{text, start, duration}`.
-4. Throws `NoTranscriptAvailable` if none (enqueue Whisper fallback).
+The project is structured to easily migrate to React when needed:
 
----
+1. **Current State**: HTML + Tailwind CSS + Vanilla JS
+2. **Migration Path**: 
+   - Replace `client/public/index.html` with React app
+   - Update `client/package.json` with React dependencies
+   - Use existing shared types in `shared/types/`
+   - Tailwind configuration is already React-ready
 
-**End of Document**
+3. **Benefits of Current Approach**:
+   - Faster initial development
+   - No build complexity overhead
+   - Easy to understand and maintain
+   - All the benefits of modern CSS (Tailwind)
+
+## 📝 Environment Variables
+
+### Required
+- `OPENAI_API_KEY` - Your OpenAI API key
+- `DATABASE_URL` - PostgreSQL connection string
+
+### Optional
+- `PORT` - Server port (default: 3000)
+- `NODE_ENV` - Environment mode
+- `CORS_ORIGIN` - CORS origin for production
+
+## 🛠️ Tech Stack
+
+### Current
+- **Backend**: Node.js, Express.js, TypeScript
+- **Database**: PostgreSQL (production) / SQLite (development)
+- **ORM**: Prisma
+- **Frontend**: HTML, Tailwind CSS, Vanilla JavaScript
+- **AI**: OpenAI GPT API
+
+### Future Ready
+- **Frontend**: React, TypeScript
+- **Build**: Vite
+- **Deployment**: Render.com
+
+## 📋 API Endpoints
+
+- `POST /api/process` - Process a YouTube URL
+- `GET /api/status/:id` - Check processing status
+- `GET /api/list` - List recent transcripts
+- `GET /health` - Health check
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+MIT License - see LICENSE file for details.

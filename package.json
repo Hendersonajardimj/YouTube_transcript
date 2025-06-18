@@ -1,0 +1,37 @@
+{
+    "name": "youtube-transcript-app",
+    "version": "1.0.0",
+    "description": "YouTube transcript processing with LLM summaries - Full Stack App",
+    "private": true,
+    "scripts": {
+        "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+        "dev:server": "cd server && npm run dev",
+        "dev:client": "cd client && npm run build:css",
+        "build": "npm run build:client && npm run build:server",
+        "build:client": "cd client && npm run build:css:prod",
+        "build:server": "cd server && npm run build",
+        "start": "cd server && npm start",
+        "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+        "db:generate": "cd server && npm run db:generate",
+        "db:push": "cd server && npm run db:push",
+        "db:migrate": "cd server && npm run db:migrate",
+        "db:deploy": "cd server && npm run db:deploy"
+    },
+    "keywords": [
+        "youtube",
+        "transcript",
+        "llm",
+        "openai",
+        "summarization",
+        "react-ready"
+    ],
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    },
+    "workspaces": [
+        "server",
+        "client"
+    ]
+}

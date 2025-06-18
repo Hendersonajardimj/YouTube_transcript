@@ -1,0 +1,44 @@
+{
+    "name": "youtube-transcript-server",
+    "version": "1.0.0",
+    "description": "YouTube transcript processing API with LLM-powered summaries",
+    "main": "dist/index.js",
+    "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "db:generate": "prisma generate",
+        "db:push": "prisma db push",
+        "db:migrate": "prisma migrate dev",
+        "db:studio": "prisma studio",
+        "db:deploy": "prisma migrate deploy"
+    },
+    "keywords": [
+        "youtube",
+        "transcript",
+        "llm",
+        "openai",
+        "summarization"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "express": "^4.18.2",
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "youtube-transcript": "^1.0.6",
+        "openai": "^4.20.1",
+        "@prisma/client": "^5.7.1",
+        "zod": "^3.22.4",
+        "uuid": "^9.0.1"
+    },
+    "devDependencies": {
+        "@types/express": "^4.17.21",
+        "@types/cors": "^2.8.17",
+        "@types/node": "^20.10.5",
+        "@types/uuid": "^9.0.7",
+        "typescript": "^5.3.3",
+        "tsx": "^4.6.2",
+        "prisma": "^5.7.1"
+    }
+}

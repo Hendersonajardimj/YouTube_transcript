@@ -1,0 +1,23 @@
+node_modules/
+dist/
+*.log
+.env
+.env.local
+.env.production
+.cache
+.nyc_output
+coverage/
+
+# Database
+*.db
+*.db-journal
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db 

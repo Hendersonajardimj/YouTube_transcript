@@ -1,0 +1,49 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: youtube-transcript-db
+    env: node
+    plan: free
+    databaseName: youtube_transcript
+    user: youtube_transcript_user
+
+  # Web Service (API + Frontend)
+  - type: web
+    name: youtube-transcript-app
+    env: node
+    plan: free
+    buildCommand: npm run install:all && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: youtube-transcript-db
+          property: connectionString
+      - key: OPENAI_API_KEY
+        sync: false  # You'll set this manually in Render dashboard
+
+# Alternative: If you want to deploy as separate services later (for React)
+# 
+# services:
+#   # API Service
+#   - type: web
+#     name: youtube-transcript-api
+#     env: node
+#     plan: free
+#     buildCommand: cd server && npm install && npm run build
+#     startCommand: cd server && npm start
+#     healthCheckPath: /health
+#     
+#   # Frontend Service (when using React)
+#   - type: web
+#     name: youtube-transcript-frontend
+#     env: static
+#     buildCommand: cd client && npm install && npm run build
+#     staticPublishPath: ./client/dist
+#     routes:
+#       - type: rewrite
+#         source: /*
+#         destination: /index.html 
